@@ -12,7 +12,10 @@
 #define ARRSIZE 126-32+1
 
 
-unsigned int pcc_total[ARRSIZE] = {0};
+//unsigned int pcc_total[ARRSIZE] = {0};
+unsigned int* pcc_total;
+//unsigned int pcc_total_temp[ARRSIZE] = {0};
+unsigned int* pcc_total_temp;
 sig_atomic_t volatile keep_running = 1;
 int listenfd = -1;
 
@@ -38,12 +41,25 @@ void receive_long(unsigned long *num, int fd) {
 }
 
 int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
-    unsigned char buffer[BUFFSIZE];
+    unsigned char* buffer;
     long bytes_read;
     long total_bytes_read = 0;
     int i = 0;
     int char_value, char_value_ind;
     int pcc_counter = 0;
+
+//    buffer = malloc(BUFFSIZE * sizeof (char));
+    buffer = calloc(BUFFSIZE,sizeof (char));
+    if (buffer == NULL) {
+        perror("buffer malloc failed.\n");
+        exit(1);
+    }
+
+    pcc_total_temp = malloc(ARRSIZE * sizeof (int));
+    if (pcc_total_temp == NULL) {
+        perror("pcc_total_temp malloc failed.\n");
+        exit(1);
+    }
 
     while (total_bytes_read < num_of_bytes_to_read) {
         bytes_read = read(connfd, buffer, sizeof(buffer));
@@ -54,17 +70,20 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
             break;
         }
         total_bytes_read += bytes_read;
+        printf("buffer = %s\n",buffer);
         while (buffer[i] != '\0') { // while buffer is full
             char_value = buffer[i];
             if (32 <= char_value && char_value <= 126) { // buffer[i] is a printable character
                 char_value_ind = char_value - 32;
-                pcc_total[char_value_ind]++;
+                pcc_total_temp[char_value_ind]++;
                 pcc_counter++;
             }
             i++;
         }
         i = 0;
     }
+    free(buffer);
+    free(pcc_total_temp);
     return pcc_counter;
 }
 
@@ -87,10 +106,24 @@ int send_int(unsigned int num, int fd) {
     return 0;
 }
 
-void printCharArray(unsigned int arr[]) {
+void print_char_arr(unsigned int* arr) {
     int i;
     for (i = 0; i < ARRSIZE; i++) {
         printf("char '%c' : %u times\n", (i + 32), arr[i]);
+    }
+}
+
+void update_stats(unsigned int* arr, const unsigned int* temp) {
+    int i;
+    for (i = 0; i < ARRSIZE; i++) {
+        arr[i] += temp[i];
+    }
+}
+
+void erase_temp(unsigned int* temp) {
+    int i;
+    for (i = 0; i < ARRSIZE; i++) {
+        temp[i] = 0;
     }
 }
 
@@ -107,7 +140,12 @@ int main(int argc, char *argv[]) {
     char *ptr;
     unsigned long *N = malloc(sizeof(unsigned long));
     if (N == NULL) {
-        perror("pcc_counter malloc failed.\n");
+        perror("N malloc failed.\n");
+        exit(1);
+    }
+    pcc_total = malloc(ARRSIZE * sizeof (int));
+    if (pcc_total == NULL) {
+        perror("pcc_total malloc failed.\n");
         exit(1);
     }
     struct sockaddr_in serv_addr;
@@ -156,8 +194,12 @@ int main(int argc, char *argv[]) {
             receive_long(N, connfd);
             pcc_counter = receive_file(connfd, *N);
             send_int(pcc_counter, connfd);
+            update_stats(pcc_total,pcc_total_temp);
+            erase_temp(pcc_total_temp);
         }
         close(connfd);
     }
-    printCharArray(pcc_total);
+    print_char_arr(pcc_total);
+    free(N);
+    free(pcc_total);
 }

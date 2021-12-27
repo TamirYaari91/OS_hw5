@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 
 
-unsigned long findSize(char *file_name) {
+unsigned long get_size(char *file_name) {
     FILE *fp = fopen(file_name, "r");
     if (fp == NULL) {
         perror("File Not Found.\n");
@@ -112,12 +112,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    N = findSize(filename);
+    N = get_size(filename);
     send_long(N, sockfd);
     send_file(fptr, sockfd);
     fclose(fptr);
     receive_int(pcc_counter, sockfd);
-
     close(sockfd);
     printf("# of printable characters: %u\n", *pcc_counter);
     return 0;

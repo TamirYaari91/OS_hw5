@@ -13,9 +13,9 @@
 
 
 //unsigned int pcc_total[ARRSIZE] = {0};
-unsigned int* pcc_total;
+unsigned int *pcc_total;
 //unsigned int pcc_total_temp[ARRSIZE] = {0};
-unsigned int* pcc_total_temp;
+unsigned int *pcc_total_temp;
 sig_atomic_t volatile keep_running = 1;
 int listenfd = -1;
 
@@ -40,8 +40,15 @@ void receive_long(unsigned long *num, int fd) {
     *num = ntohl(ret);
 }
 
+void erase_buff(char *buff) {
+    int i;
+    for (i = 0; i < BUFFSIZE; i++) {
+        buff[i] = '\0';
+    }
+}
+
 int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
-    unsigned char* buffer;
+    char *buffer;
     long bytes_read;
     long total_bytes_read = 0;
     int i = 0;
@@ -49,19 +56,20 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
     int pcc_counter = 0;
 
 //    buffer = malloc(BUFFSIZE * sizeof (char));
-    buffer = calloc(BUFFSIZE,sizeof (char));
+    buffer = calloc(BUFFSIZE, sizeof(char));
     if (buffer == NULL) {
         perror("buffer malloc failed.\n");
         exit(1);
     }
 
-    pcc_total_temp = malloc(ARRSIZE * sizeof (int));
+    pcc_total_temp = malloc(ARRSIZE * sizeof(int));
     if (pcc_total_temp == NULL) {
         perror("pcc_total_temp malloc failed.\n");
         exit(1);
     }
 
     while (total_bytes_read < num_of_bytes_to_read) {
+        erase_buff(buffer);
         bytes_read = read(connfd, buffer, sizeof(buffer));
         if (bytes_read <= 0) {
             if (bytes_read < 0) {
@@ -70,9 +78,8 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
             break;
         }
         total_bytes_read += bytes_read;
-        printf("buffer = %s\n",buffer);
         while (buffer[i] != '\0') { // while buffer is full
-            char_value = buffer[i];
+            char_value = (unsigned char) buffer[i];
             if (32 <= char_value && char_value <= 126) { // buffer[i] is a printable character
                 char_value_ind = char_value - 32;
                 pcc_total_temp[char_value_ind]++;
@@ -83,7 +90,7 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
         i = 0;
     }
     free(buffer);
-    free(pcc_total_temp);
+//    free(pcc_total_temp);
     return pcc_counter;
 }
 
@@ -106,24 +113,24 @@ int send_int(unsigned int num, int fd) {
     return 0;
 }
 
-void print_char_arr(unsigned int* arr) {
+void print_char_arr(unsigned int *arr) {
     int i;
     for (i = 0; i < ARRSIZE; i++) {
         printf("char '%c' : %u times\n", (i + 32), arr[i]);
     }
 }
 
-void update_stats(unsigned int* arr, const unsigned int* temp) {
+void update_stats(unsigned int *arr, const unsigned int *temp) {
     int i;
     for (i = 0; i < ARRSIZE; i++) {
         arr[i] += temp[i];
     }
 }
 
-void erase_temp(unsigned int* temp) {
+void erase_arr(unsigned int *arr) {
     int i;
     for (i = 0; i < ARRSIZE; i++) {
-        temp[i] = 0;
+        arr[i] = 0;
     }
 }
 
@@ -143,7 +150,8 @@ int main(int argc, char *argv[]) {
         perror("N malloc failed.\n");
         exit(1);
     }
-    pcc_total = malloc(ARRSIZE * sizeof (int));
+    pcc_total = malloc(ARRSIZE * sizeof(int));
+    erase_arr(pcc_total);
     if (pcc_total == NULL) {
         perror("pcc_total malloc failed.\n");
         exit(1);
@@ -194,8 +202,8 @@ int main(int argc, char *argv[]) {
             receive_long(N, connfd);
             pcc_counter = receive_file(connfd, *N);
             send_int(pcc_counter, connfd);
-            update_stats(pcc_total,pcc_total_temp);
-            erase_temp(pcc_total_temp);
+            update_stats(pcc_total, pcc_total_temp);
+            erase_arr(pcc_total_temp);
         }
         close(connfd);
     }

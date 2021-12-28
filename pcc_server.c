@@ -38,18 +38,27 @@ void receive_int(unsigned int *num, int fd) {
     *num = ntohl(ret);
 }
 
-void erase_buff(char *buff) {
+void erase_buff(char buff[]) {
     int i;
     for (i = 0; i < BUFFSIZE; i++) {
         buff[i] = '\0';
     }
 }
 
+void printBuffer(char buffer[]) { // for debugging
+    int i;
+    printf("buffer = \n");
+    for (i = 0; i < BUFFSIZE; i++) {
+        printf("%c",buffer[i]);
+    }
+    printf("\n");
+}
+
 int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
     char buffer[BUFFSIZE];
     long bytes_read;
     long total_bytes_read = 0;
-    int i = 0;
+    int i;
     int char_value, char_value_ind;
     int C = 0;
 
@@ -60,19 +69,24 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
             if (bytes_read < 0) {
                 exit(1);
             }
-            break;
+            break; // nothing more to read
         }
         total_bytes_read += bytes_read;
-        while (buffer[i] != '\0' && i < BUFFSIZE) { // while buffer is full
+        int start = 0;
+        while (buffer[start] == '\0') {
+            start++; // buffer is sometimes padded with \0 in the beginning...
+        }
+        for (i = start; i < bytes_read; i++) {
+            if (buffer[i] == '\0') {
+                break; // end of buffer
+            }
             char_value = (unsigned char) buffer[i];
             if (32 <= char_value && char_value <= 126) { // buffer[i] is a printable character
                 char_value_ind = char_value - 32;
                 pcc_total_temp[char_value_ind]++; // update temp pcc_total
                 C++;
             }
-            i++;
         }
-        i = 0;
     }
     return C;
 }

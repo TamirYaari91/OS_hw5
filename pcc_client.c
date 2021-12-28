@@ -5,16 +5,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sys/fcntl.h>
+
+#define BUFFSIZE 1024
 
 
-unsigned long get_size(char *file_name) {
+unsigned int get_size(char *file_name) {
     FILE *fp = fopen(file_name, "r");
     if (fp == NULL) {
         perror("File Not Found.\n");
         exit(1);
     }
     fseek(fp, 0L, SEEK_END);
-    long int res = ftell(fp);
+    unsigned int res = ftell(fp);
     fclose(fp);
     return res;
 }
@@ -36,20 +39,22 @@ int send_int(unsigned int num, int fd) {
     return 0;
 }
 
-void send_file(FILE *fp, int sockfd) {
-    long bytes_written;
-    long bytes_written_total = 0;
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
-    while ((read = getline(&line, &len, fp)) != -1) {
-        bytes_written = write(sockfd, line, read);
-        if (bytes_written == -1) {
-            perror("Error in sending file.");
+void erase_buff(char buff[]) {
+    int i;
+    for (i = 0; i < BUFFSIZE; i++) {
+        buff[i] = '\0';
+    }
+}
+
+void send_file(int file, int sockfd) {
+    char buffer[BUFFSIZE];
+
+    while (read(file, buffer, BUFFSIZE) > 0) {
+        if (write(sockfd, buffer, BUFFSIZE) <= 0) {
+            printf("error in write\n");
             exit(1);
-        } else {
-            bytes_written_total += bytes_written;
         }
+        erase_buff(buffer);
     }
 }
 
@@ -76,6 +81,7 @@ int main(int argc, char *argv[]) {
     unsigned short server_port;
     char *ptr;
     FILE *fptr;
+    int file;
     char *filename;
     unsigned int N;
     unsigned int *C = malloc(sizeof(unsigned int));
@@ -98,6 +104,14 @@ int main(int argc, char *argv[]) {
         perror("Error in file opening.\n");
         exit(1);
     }
+
+    file = open(filename, O_RDONLY);
+    if (file <= 0) {
+        printf("handle error"); //TODO - Error Handling
+        exit(1);
+    }
+
+
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Error in socket creation.\n");
         exit(1);
@@ -114,10 +128,12 @@ int main(int argc, char *argv[]) {
 
     N = get_size(filename); // calculate N
     send_int(N, sockfd); // send N to server
-    send_file(fptr, sockfd); // send N bytes to server
+    send_file(file, sockfd); // send N bytes to server
+
     fclose(fptr);
     receive_int(C, sockfd); // get C from server
     close(sockfd);
     printf("# of printable characters: %u\n", *C);
+    free(C);
     return 0;
 }

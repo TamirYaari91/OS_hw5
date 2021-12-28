@@ -119,5 +119,6 @@ int main(int argc, char *argv[]) {
     receive_int(C, sockfd); // get C from server
     close(sockfd);
     printf("# of printable characters: %u\n", *C);
+    free(C);
     return 0;
 }

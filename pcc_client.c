@@ -7,19 +7,19 @@
 #include <arpa/inet.h>
 
 
-unsigned long get_size(char *file_name) {
+unsigned int get_size(char *file_name) {
     FILE *fp = fopen(file_name, "r");
     if (fp == NULL) {
         perror("File Not Found.\n");
         exit(1);
     }
     fseek(fp, 0L, SEEK_END);
-    long int res = ftell(fp);
+    unsigned int res = ftell(fp);
     fclose(fp);
     return res;
 }
 
-int send_long(unsigned long num, int fd) {
+int send_int(unsigned int num, int fd) {
     unsigned long conv = htonl(num);
     char *data = (char *) &conv;
     unsigned long left = sizeof(conv);
@@ -27,7 +27,7 @@ int send_long(unsigned long num, int fd) {
     do {
         rc = write(fd, data, left);
         if (rc < 0) {
-            perror("write in send_long failed.\n");
+            perror("write in send_int failed.\n");
             exit(1);
         }
         data += rc;
@@ -77,10 +77,10 @@ int main(int argc, char *argv[]) {
     char *ptr;
     FILE *fptr;
     char *filename;
-    unsigned long N;
-    unsigned int *pcc_counter = malloc(sizeof(unsigned int));
-    if (pcc_counter == NULL) {
-        perror("pcc_counter malloc failed.\n");
+    unsigned int N;
+    unsigned int *C = malloc(sizeof(unsigned int));
+    if (C == NULL) {
+        perror("C malloc failed.\n");
         exit(1);
     }
     struct sockaddr_in serv_addr; // where we Want to get to
@@ -112,12 +112,12 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    N = get_size(filename);
-    send_long(N, sockfd);
-    send_file(fptr, sockfd);
+    N = get_size(filename); // calculate N
+    send_int(N, sockfd); // send N to server
+    send_file(fptr, sockfd); // send N bytes to server
     fclose(fptr);
-    receive_int(pcc_counter, sockfd);
+    receive_int(C, sockfd); // get C from server
     close(sockfd);
-    printf("# of printable characters: %u\n", *pcc_counter);
+    printf("# of printable characters: %u\n", *C);
     return 0;
 }

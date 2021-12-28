@@ -13,22 +13,20 @@
 
 
 unsigned int pcc_total[ARRSIZE] = {0};
-//unsigned int *pcc_total;
 unsigned int pcc_total_temp[ARRSIZE] = {0};
-//unsigned int *pcc_total_temp;
 sig_atomic_t volatile keep_running = 1;
 int listenfd = -1;
 
 
-void receive_long(unsigned long *num, int fd) {
-    unsigned long ret;
+void receive_int(unsigned int *num, int fd) {
+    unsigned int ret;
     char *data = (char *) &ret;
     long left = sizeof(ret);
     long rc;
     do {
         rc = read(fd, data, left);
         if (rc <= 0) {
-            perror("error in receive_long.\n");
+            perror("error in receive_int.\n");
             if (rc < 0) {
                 exit(1);
             }
@@ -53,14 +51,7 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
     long total_bytes_read = 0;
     int i = 0;
     int char_value, char_value_ind;
-    int pcc_counter = 0;
-
-//    buffer = malloc(BUFFSIZE * sizeof (char));
-//    buffer = calloc(BUFFSIZE, sizeof(char));
-//    if (buffer == NULL) {
-//        perror("buffer malloc failed.\n");
-//        exit(1);
-//    }
+    int C = 0;
 
     while (total_bytes_read < num_of_bytes_to_read) {
         erase_buff(buffer);
@@ -76,15 +67,14 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
             char_value = (unsigned char) buffer[i];
             if (32 <= char_value && char_value <= 126) { // buffer[i] is a printable character
                 char_value_ind = char_value - 32;
-                pcc_total_temp[char_value_ind]++;
-                pcc_counter++;
+                pcc_total_temp[char_value_ind]++; // update temp pcc_total
+                C++;
             }
             i++;
         }
         i = 0;
     }
-//    free(buffer);
-    return pcc_counter;
+    return C;
 }
 
 int send_int(unsigned int num, int fd) {
@@ -135,26 +125,14 @@ void sig_handler(int _) {
 
 int main(int argc, char *argv[]) {
     int connfd;
-    int pcc_counter;
+    int C;
     unsigned short server_port;
     char *ptr;
-    unsigned long *N = malloc(sizeof(unsigned long));
+    unsigned int *N = malloc(sizeof(unsigned int));
     if (N == NULL) {
         perror("N malloc failed.\n");
         exit(1);
     }
-//    pcc_total = malloc(ARRSIZE * sizeof(int));
-//    if (pcc_total == NULL) {
-//        perror("pcc_total malloc failed.\n");
-//        exit(1);
-//    }
-//
-//    pcc_total_temp = malloc(ARRSIZE * sizeof(int));
-//    if (pcc_total_temp == NULL) {
-//        perror("pcc_total_temp malloc failed.\n");
-//        exit(1);
-//    }
-
     erase_arr(pcc_total);
     erase_arr(pcc_total_temp);
     struct sockaddr_in serv_addr;
@@ -185,7 +163,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (0 != listen(listenfd, 10)) {
+    if (0 != listen(listenfd, 10)) { // Queue of size 10 as requested
         printf("\n Error : Listen Failed. %s \n", strerror(errno));
         if (!(errno == ETIMEDOUT || errno == ECONNRESET || errno == EPIPE)) {
             exit(1);
@@ -200,16 +178,14 @@ int main(int argc, char *argv[]) {
                     exit(1);
                 }
             }
-            receive_long(N, connfd);
-            pcc_counter = receive_file(connfd, *N);
-            send_int(pcc_counter, connfd);
-            update_stats(pcc_total, pcc_total_temp);
+            receive_int(N, connfd); // get N from client
+            C = receive_file(connfd, *N); // get the N bytes from client
+            send_int(C, connfd); // send C to client
+            update_stats(pcc_total, pcc_total_temp); // stats are updated only if connection is terminated as expected
             erase_arr(pcc_total_temp);
         }
         close(connfd);
     }
     print_char_arr(pcc_total);
     free(N);
-//    free(pcc_total);
-//    free(pcc_total_temp);
 }

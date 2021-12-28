@@ -7,14 +7,14 @@
 #include <arpa/inet.h>
 
 
-unsigned int get_size(char *file_name) {
+unsigned long get_size(char *file_name) {
     FILE *fp = fopen(file_name, "r");
     if (fp == NULL) {
         perror("File Not Found.\n");
         exit(1);
     }
     fseek(fp, 0L, SEEK_END);
-    unsigned int res = ftell(fp);
+    long int res = ftell(fp);
     fclose(fp);
     return res;
 }
@@ -119,6 +119,5 @@ int main(int argc, char *argv[]) {
     receive_int(C, sockfd); // get C from server
     close(sockfd);
     printf("# of printable characters: %u\n", *C);
-    free(C);
     return 0;
 }

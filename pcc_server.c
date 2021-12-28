@@ -12,10 +12,10 @@
 #define ARRSIZE 126-32+1
 
 
-//unsigned int pcc_total[ARRSIZE] = {0};
-unsigned int *pcc_total;
-//unsigned int pcc_total_temp[ARRSIZE] = {0};
-unsigned int *pcc_total_temp;
+unsigned int pcc_total[ARRSIZE] = {0};
+//unsigned int *pcc_total;
+unsigned int pcc_total_temp[ARRSIZE] = {0};
+//unsigned int *pcc_total_temp;
 sig_atomic_t volatile keep_running = 1;
 int listenfd = -1;
 
@@ -48,7 +48,7 @@ void erase_buff(char *buff) {
 }
 
 int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
-    char *buffer;
+    char buffer[BUFFSIZE];
     long bytes_read;
     long total_bytes_read = 0;
     int i = 0;
@@ -56,11 +56,11 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
     int pcc_counter = 0;
 
 //    buffer = malloc(BUFFSIZE * sizeof (char));
-    buffer = calloc(BUFFSIZE, sizeof(char));
-    if (buffer == NULL) {
-        perror("buffer malloc failed.\n");
-        exit(1);
-    }
+//    buffer = calloc(BUFFSIZE, sizeof(char));
+//    if (buffer == NULL) {
+//        perror("buffer malloc failed.\n");
+//        exit(1);
+//    }
 
     while (total_bytes_read < num_of_bytes_to_read) {
         erase_buff(buffer);
@@ -83,7 +83,7 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
         }
         i = 0;
     }
-    free(buffer);
+//    free(buffer);
     return pcc_counter;
 }
 
@@ -143,17 +143,17 @@ int main(int argc, char *argv[]) {
         perror("N malloc failed.\n");
         exit(1);
     }
-    pcc_total = malloc(ARRSIZE * sizeof(int));
-    if (pcc_total == NULL) {
-        perror("pcc_total malloc failed.\n");
-        exit(1);
-    }
-
-    pcc_total_temp = malloc(ARRSIZE * sizeof(int));
-    if (pcc_total_temp == NULL) {
-        perror("pcc_total_temp malloc failed.\n");
-        exit(1);
-    }
+//    pcc_total = malloc(ARRSIZE * sizeof(int));
+//    if (pcc_total == NULL) {
+//        perror("pcc_total malloc failed.\n");
+//        exit(1);
+//    }
+//
+//    pcc_total_temp = malloc(ARRSIZE * sizeof(int));
+//    if (pcc_total_temp == NULL) {
+//        perror("pcc_total_temp malloc failed.\n");
+//        exit(1);
+//    }
 
     erase_arr(pcc_total);
     erase_arr(pcc_total_temp);
@@ -210,6 +210,6 @@ int main(int argc, char *argv[]) {
     }
     print_char_arr(pcc_total);
     free(N);
-    free(pcc_total);
-    free(pcc_total_temp);
+//    free(pcc_total);
+//    free(pcc_total_temp);
 }

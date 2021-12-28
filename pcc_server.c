@@ -62,12 +62,6 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
         exit(1);
     }
 
-    pcc_total_temp = malloc(ARRSIZE * sizeof(int));
-    if (pcc_total_temp == NULL) {
-        perror("pcc_total_temp malloc failed.\n");
-        exit(1);
-    }
-
     while (total_bytes_read < num_of_bytes_to_read) {
         erase_buff(buffer);
         bytes_read = read(connfd, buffer, sizeof(buffer));
@@ -90,7 +84,6 @@ int receive_file(int connfd, unsigned long num_of_bytes_to_read) {
         i = 0;
     }
     free(buffer);
-    free(pcc_total_temp);
     return pcc_counter;
 }
 
@@ -155,7 +148,15 @@ int main(int argc, char *argv[]) {
         perror("pcc_total malloc failed.\n");
         exit(1);
     }
+
+    pcc_total_temp = malloc(ARRSIZE * sizeof(int));
+    if (pcc_total_temp == NULL) {
+        perror("pcc_total_temp malloc failed.\n");
+        exit(1);
+    }
+
     erase_arr(pcc_total);
+    erase_arr(pcc_total_temp);
     struct sockaddr_in serv_addr;
     socklen_t addrsize = sizeof(struct sockaddr_in);
 
@@ -210,4 +211,5 @@ int main(int argc, char *argv[]) {
     print_char_arr(pcc_total);
     free(N);
     free(pcc_total);
+    free(pcc_total_temp);
 }

@@ -48,6 +48,7 @@ void erase_buff(char buff[]) {
 
 void send_file(int file, int sockfd) {
     char buffer[BUFFSIZE];
+    memset(buffer,0,BUFFSIZE);
 
     while (read(file, buffer, BUFFSIZE) > 0) {
         if (write(sockfd, buffer, BUFFSIZE) <= 0) {
